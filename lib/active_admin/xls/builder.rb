@@ -30,6 +30,7 @@ module ActiveAdmin
         @skip_header = false
         @resource_class = resource_class
         @columns = []
+        @cells = nil
         parse_options options
         instance_eval &block if block_given?
       end
@@ -101,7 +102,6 @@ module ActiveAdmin
         @columns = []
       end
 
-      # ------ edited by jayce ----------
       # Add a column
       # @param [Symbol] name The name of the column.
       # @param [Option] width can set column width
@@ -128,7 +128,6 @@ module ActiveAdmin
         to_stream
       end
 
-      # ------ add by jayce ----------
       # set row height
       def row_height=(settings)
         settings.each do |setting|
@@ -138,9 +137,7 @@ module ActiveAdmin
 
       # merge cells
       def merge_cells=(cells)
-        cells.each do |cell={}|
-          sheet.merge_cells(cell[:start_row], cell[:start_col], cell[:end_row], cell[:end_col])
-        end
+        @cells = cells
       end
 
       # set table body start row
@@ -181,7 +178,6 @@ module ActiveAdmin
 
       protected
 
-      # ------ edited by jayce ----------
       class Column
         def initialize(name, args = { width: 15 }, block = nil)
           @name = name
@@ -210,10 +206,13 @@ module ActiveAdmin
         @book = @sheet = nil
       end
 
-      # ------ edited by jayce ----------
       def export_collection(collection)
         if columns.any?
           row_index = start_row
+
+          @cells.each do |cell = {}|
+            sheet.merge_cells(cell[:start_row], cell[:start_col], cell[:end_row], cell[:end_col])
+          end
 
           unless @skip_header
             header_row(collection)
@@ -230,7 +229,6 @@ module ActiveAdmin
         end
       end
 
-      # ------ edited by jayce ----------
       # tranform column names into array of localized strings
       def header_row(collection)
         row = sheet.row(start_row)
