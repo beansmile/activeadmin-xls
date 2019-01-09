@@ -107,7 +107,7 @@ module ActiveAdmin
       # @param [Option] width can set column width
       # @param [Proc] block A block of code that is executed on the resource
       #                     when generating row data for this column.
-      def column(name, args = { width: 15 }, &block)
+      def column(name, args = { width: 15, label: nil }, &block)
         @columns << Column.new(name, args, block)
       end
 
@@ -179,13 +179,14 @@ module ActiveAdmin
       protected
 
       class Column
-        def initialize(name, args = { width: 15 }, block = nil)
+        def initialize(name, args = { width: 15, label: nil }, block = nil)
           @name = name
+          @label = args[:label]
           @data = block || @name
           @width = args[:width]
         end
 
-        attr_reader :name, :data, :width
+        attr_reader :name, :data, :width, :label
 
         def localized_name(i18n_scope = nil)
           return name.to_s.titleize unless i18n_scope
@@ -219,10 +220,10 @@ module ActiveAdmin
             row_index = start_row + 1
           end
 
-          collection.each do |resource|
+          collection.each_with_index do |resource, collection_index|
             row = sheet.row(row_index)
             row.height = body_hight
-            fill_row(row, resource_data(resource))
+            fill_row(row, resource_data(resource, collection_index + 1))
 
             row_index += 1
           end
@@ -237,7 +238,7 @@ module ActiveAdmin
 
         resource = collection.first
         columns.each_with_index  do |column, index|
-          content = column.localized_name(i18n_scope) if in_scope(resource, column)
+          content = column.label || column.localized_name(i18n_scope) if in_scope(resource, column)
           sheet[start_row, index] = content
           # set body_format for column
           sheet.format_column index, body_format, width: column.width
@@ -261,15 +262,16 @@ module ActiveAdmin
         end
       end
 
-      def resource_data(resource)
+      def resource_data(resource, collection_index)
         columns.map  do |column|
+          next collection_index if column.name == :index
           call_method_or_proc_on resource, column.data if in_scope(resource, column)
         end
       end
 
       def in_scope(resource, column)
         return true unless column.name.is_a?(Symbol)
-        resource.respond_to?(column.name)
+        resource.respond_to?(column.name) || column.name == :index
       end
 
       def sheet
