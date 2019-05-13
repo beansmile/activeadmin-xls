@@ -10,7 +10,16 @@ module ActiveAdmin
           block.call format if block_given?
 
           format.xls do
-            xls = active_admin_config.xls_builder.serialize(collection, view_context)
+            # 每个页面都可以导出资源的所有数据
+            collection_data = collection.model.all
+            collection_data = collection_data.ransack(params[:q]).result if params[:q]
+            if params[:scope] && collection_data.respond_to?(params[:scope]) &&
+              params[:scope].exclude?("destroy") && params[:scope].exclude?("delete")
+              collection_data = collection_data.public_send("#{params[:scope]}")
+            end
+            collection_data = collection_data.order(params[:order].reverse.sub("_", " ").reverse) if params[:order]
+
+            xls = active_admin_config.xls_builder.serialize(collection_data, view_context)
             send_data(xls,
                       :filename => "#{xls_filename}",
                       :type => Mime::Type.lookup_by_extension(:xls))
