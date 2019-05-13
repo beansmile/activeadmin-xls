@@ -30,7 +30,7 @@ module ActiveAdmin
         @skip_header = false
         @resource_class = resource_class
         @columns = []
-        @cells = nil
+        @cells = []
         parse_options options
         instance_eval &block if block_given?
       end
